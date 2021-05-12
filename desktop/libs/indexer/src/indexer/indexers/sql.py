@@ -282,7 +282,7 @@ class SQLIndexer(object):
         is_task=True
     )
 
-  def bool_col_update(self, row, columns):
+  def nomalize_booleans(self, row, columns):
     for cnt, col in enumerate(columns):
       if col['type'] == 'boolean':
         if row[cnt] in ('T', 't', 'true', 'True', 'TRUE', '1'):
@@ -342,7 +342,7 @@ class SQLIndexer(object):
           if source['format']['hasHeader'] and count == 0:
             continue
           if editor_type == 'impala':                         # for the boolean col updating csv_val to (1,0)
-            row = self.bool_col_update(row, columns)
+            row = self.nomalize_booleans(row, columns)
           csv_rows.append(tuple(row))
 
         if csv_rows:
@@ -357,30 +357,19 @@ class SQLIndexer(object):
                     'csv_rows': csv_rows
                   }
           elif editor_type == 'impala':
-            sql += '''\nINSERT INTO %(database)s.%(table_name)s_tmp VALUES %(csv_rows)s;\n\nCREATE TABLE IF NOT EXISTS %(database)s.%(table_name)s
-AS SELECT'''% {
-                    'database': database,
-                    'table_name': table_name,
-                    'csv_rows': csv_rows
-                  }
 
-            for count, col in enumerate(columns):
-              if col['type'] == 'boolean':                # casting from string to boolean is not allowed in impala so string -> int -> bool
-                sql += '''\n  CAST ( CAST ( `%(col_name)s` AS TINYINT ) AS boolean ) `%(col_name)s`'''%{
-                'col_name': col['name']
-              }
-              else:
-                sql += '''\n  CAST ( `%(col_name)s` AS %(col_type)s ) `%(col_name)s`'''%{
-                  'col_name': col['name'],
-                  'col_type': col['type']
-                }
-              if count != len(columns)-1:
-                sql += ','
-          
-            sql += '''\nFROM  %(database)s.%(table_name)s_tmp;\n\nDROP TABLE IF EXISTS %(database)s.%(table_name)s_tmp;
-            '''% {
+             # casting from string to boolean is not allowed in impala so string -> int -> bool
+            sql_ = ',\n'.join([
+              '  CAST ( `%(name)s` AS %(type)s ) `%(name)s`' % col if col['type'] != 'boolean' \
+              else '  CAST ( CAST ( `%(name)s` AS TINYINT ) AS boolean ) `%(name)s`' % col for col in columns
+            ])
+
+            sql += '''\nINSERT INTO %(database)s.%(table_name)s_tmp VALUES %(csv_rows)s;\n\nCREATE TABLE IF NOT EXISTS %(database)s.%(table_name)s
+AS SELECT\n%(sql_)s\nFROM  %(database)s.%(table_name)s_tmp;\n\nDROP TABLE IF EXISTS %(database)s.%(table_name)s_tmp;'''% {
                     'database': database,
                     'table_name': table_name,
+                    'csv_rows': csv_rows,
+                    'sql_': sql_
                   }
 
     on_success_url = reverse('metastore:describe_table', kwargs={'database': database, 'table': final_table_name}) + \
