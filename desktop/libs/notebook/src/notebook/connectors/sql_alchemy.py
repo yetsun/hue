@@ -251,24 +251,26 @@ class SqlAlchemyApi(Api):
           'database': snippet['database'],
         }
       )
+    stmt_list = statement.split(';')
+    for stmt in stmt_list:
 
-    result = connection.execute(statement)
+      result = connection.execute(stmt)
 
-    logs = [message for message in result.cursor.fetch_logs()] if result.cursor and hasattr(result.cursor, 'fetch_logs') else []
-    cache = {
-      'logs': logs,
-      'connection': connection,
-      'result': result,
-      'meta': [
-        {
-          'name': col[0] if (type(col) is tuple or type(col) is dict) else col.name if hasattr(col, 'name') else col,
-          'type': 'STRING_TYPE',
-          'comment': ''
-        }
-        for col in result.cursor.description
-      ] if result.cursor else []
-    }
-    CONNECTIONS[guid] = cache
+      logs = [message for message in result.cursor.fetch_logs()] if result.cursor and hasattr(result.cursor, 'fetch_logs') else []
+      cache = {
+        'logs': logs,
+        'connection': connection,
+        'result': result,
+        'meta': [
+          {
+            'name': col[0] if (type(col) is tuple or type(col) is dict) else col.name if hasattr(col, 'name') else col,
+            'type': 'STRING_TYPE',
+            'comment': ''
+          }
+          for col in result.cursor.description
+        ] if result.cursor else []
+      }
+      CONNECTIONS[guid] = cache
 
     return {
       'sync': False,
