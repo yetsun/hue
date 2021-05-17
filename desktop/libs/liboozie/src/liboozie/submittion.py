@@ -229,6 +229,7 @@ class Submission(object):
     # Automatic setup of the required directories if needed
     create_directories(self.fs)
 
+    """
     # Case of a shared job
     if self.user != self.job.owner:
       path = Hdfs.join(REMOTE_DEPLOYMENT_DIR.get(), '_%s_-oozie-%s-%s' % (self.user.username, self.job.id, time.time()))
@@ -240,6 +241,10 @@ class Submission(object):
     else:
       path = self.job.deployment_dir
       self._create_dir(path)
+    """
+
+    path = self.job.deployment_dir
+    self._create_dir(path)
     return path
 
   def _create_dir(self, path, perms=0711):

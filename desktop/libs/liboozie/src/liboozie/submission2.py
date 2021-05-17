@@ -391,6 +391,7 @@ STORED AS TEXTFILE %s""" % (self.properties.get('send_result_path'), '\n\n\n'.jo
     # Automatic setup of the required directories if needed
     create_directories(self.fs)
 
+    """
     # Check if job owner owns the deployment directory.
     has_deployment_dir_access = False
     if self.job.deployment_dir and self.fs.exists(self.job.deployment_dir):
@@ -408,6 +409,10 @@ STORED AS TEXTFILE %s""" % (self.properties.get('send_result_path'), '\n\n\n'.jo
     else:
       path = self.job.deployment_dir
       self._create_dir(path)
+    """
+
+    path = self.job.deployment_dir
+    self._create_dir(path)
     return path
 
   def _create_dir(self, path, perms=None):
